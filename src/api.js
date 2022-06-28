@@ -816,15 +816,14 @@ Module["onRuntimeInitialized"] = function onRuntimeInitialized() {
     * @param {Object} opts Options to specify a filename
     */
     function Database(data, { filename = false } = {}) {
-        if(filename === false) {
-          this.filename = "dbfile_" + (0xffffffff * Math.random() >>> 0);
-          this.memoryFile = true;
-          if (data != null) {
-            FS.createDataFile("/", this.filename, data, true, true);
-          }
-        }
-        else {
-          this.filename = data;
+        if (filename === false) {
+            this.filename = "dbfile_" + (0xffffffff * Math.random() >>> 0);
+            this.memoryFile = true;
+            if (data != null) {
+                FS.createDataFile("/", this.filename, data, true, true);
+            }
+        } else {
+            this.filename = data;
         }
         this.handleError(sqlite3_open(this.filename, apiTemp));
         this.db = getValue(apiTemp, "i32");
@@ -1007,9 +1006,7 @@ Module["onRuntimeInitialized"] = function onRuntimeInitialized() {
             function (row){console.log(row.name + " is a grown-up.")}
     );
      */
-    Database.prototype["each"] = function each(
-        sql, params, callback, done, config
-    ) {
+    Database.prototype["each"] = function each(sql, params, callback, done, config) {
         var stmt;
         if (typeof params === "function") {
             done = callback;
@@ -1111,8 +1108,8 @@ Module["onRuntimeInitialized"] = function onRuntimeInitialized() {
         this.functions = {};
         this.handleError(sqlite3_close_v2(this.db));
 
-        if(this.memoryFile) {
-          FS.unlink("/" + this.filename);
+        if (this.memoryFile) {
+            FS.unlink("/" + this.filename);
         }
         this.db = null;
     };
@@ -1207,10 +1204,12 @@ Module["onRuntimeInitialized"] = function onRuntimeInitialized() {
                         sqlite3_result_blob(cx, blobptr, result.length, -1);
                         _free(blobptr);
                     } else {
-                        sqlite3_result_error(cx, (
-                            "Wrong API use : tried to return a value "
+                        sqlite3_result_error(
+                            cx, (
+                                "Wrong API use : tried to return a value "
                             + "of an unknown type (" + result + ")."
-                        ), -1);
+                            ), -1
+                        );
                     }
                     break;
                 default:
@@ -1249,41 +1248,41 @@ Module["onRuntimeInitialized"] = function onRuntimeInitialized() {
     var sqliteFiles = new Map();
 
     Module["register_for_idb"] = (customFS) => {
-      var SQLITE_BUSY = 5;
+        var SQLITE_BUSY = 5;
 
-      function open(namePtr, file) {
-        var path = UTF8ToString(namePtr);
-        sqliteFiles.set(file, path);
-      }
+        function open(namePtr, file) {
+            var path = UTF8ToString(namePtr);
+            sqliteFiles.set(file, path);
+        }
 
-      function lock(file, lockType) {
-        var path = sqliteFiles.get(file);
-        var success = customFS.lock(path, lockType)
-        return success? 0 : SQLITE_BUSY;
-      }
+        function lock(file, lockType) {
+            var path = sqliteFiles.get(file);
+            var success = customFS.lock(path, lockType);
+            return success ? 0 : SQLITE_BUSY;
+        }
 
-      function unlock(file,lockType) {
-        var path = sqliteFiles.get(file);
-        customFS.unlock(path, lockType)
-        return 0;
-      }
+        function unlock(file, lockType) {
+            var path = sqliteFiles.get(file);
+            customFS.unlock(path, lockType);
+            return 0;
+        }
 
-      let lockPtr = addFunction(lock, 'iii');
-      let unlockPtr = addFunction(unlock, 'iii');
-      let openPtr = addFunction(open, 'vii');
-      Module["_register_for_idb"](lockPtr, unlockPtr, openPtr)
-    }
+        const lockPtr = addFunction(lock, "iii");
+        const unlockPtr = addFunction(unlock, "iii");
+        const openPtr = addFunction(open, "vii");
+        Module["_register_for_idb"](lockPtr, unlockPtr, openPtr);
+    };
 
     // TODO: This isn't called from anywhere yet. We need to
     // somehow cleanup closed files from `sqliteFiles`
     Module["cleanup_file"] = (path) => {
-      let filesInfo = [...sqliteFiles.entries()]
-      let fileInfo = filesInfo.find(f => f[1] === path);
-      sqliteFiles.delete(fileInfo[0])
-    }
+        const filesInfo = [...sqliteFiles.entries()];
+        const fileInfo = filesInfo.find((f) => f[1] === path);
+        sqliteFiles.delete(fileInfo[0]);
+    };
 
     Module["reset_filesystem"] = () => {
-      FS.root = null;
-      FS.staticInit();
-    }
+        FS.root = null;
+        FS.staticInit();
+    };
 };
