@@ -19,9 +19,11 @@
 	"license": "MIT",
 	"main": "./dist/sql-wasm.js",
 	"scripts": {
-		"build": "make",
-		"rebuild": "npm run clean && npm run build",
+		"build": "make all",
+		"rebuild": "make clean && make all",
 		"clean": "make clean",
+		"wasm": "make clean && make wasm",
+		"asm": "make clean && make asm",
 		"test": "npm run lint && npm run test-asm && npm run test-asm-debug && npm run test-wasm && npm run test-wasm-debug && npm run test-asm-memory-growth",
 		"lint": "eslint .",
 		"prettify": "eslint . --fix",
