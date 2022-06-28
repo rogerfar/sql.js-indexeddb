@@ -2,7 +2,7 @@
 # This gives us lots of standard stuff, and lets us layer a few custom things on top, like the Emscripten compiler, Puppeteer
 
 # --------------------------------------------------------------------
-# BEGIN Standard MS Devcontainer for Typescript-Node 
+# BEGIN Standard MS Devcontainer for Typescript-Node
 
 # See here for image contents: https://github.com/microsoft/vscode-dev-containers/tree/v0.155.1/containers/typescript-node/.devcontainer/base.Dockerfile
 # [Choice] Node.js version: 14, 12, 10
@@ -16,15 +16,15 @@ FROM mcr.microsoft.com/vscode/devcontainers/typescript-node:0-${VARIANT}
 # [Optional] Uncomment if you want to install more global node packages
 # RUN su node -c "npm install -g <your-package-list -here>"
 
-# END Standard MS Devcontainer for Typescript-Node 
+# END Standard MS Devcontainer for Typescript-Node
 # --------------------------------------------------------------------
 
 # --------------------------------------------------------------------
-# BEGIN EMSDK 
+# BEGIN EMSDK
 # Install EMSDK to /emsdk just like the EMSDK Dockerfile: https://github.com/emscripten-core/emsdk/blob/master/docker/Dockerfile
 ENV EMSDK /emsdk
 # We pin the EMSDK version rather than 'latest' so that everyone is using the same compiler version
-ENV EMSCRIPTEN_VERSION 3.1.8
+ENV EMSCRIPTEN_VERSION 3.1.14
 
 RUN git clone https://github.com/emscripten-core/emsdk.git $EMSDK
 
@@ -75,7 +75,7 @@ RUN echo 'export EM_NODE_JS="$EMSDK_NODE"' >> /etc/bash.bashrc
 # Here we install all of the packages depended upon by Chrome (that Puppeteer will use for headless tests).
 # We could also take a page from https://github.com/buildkite/docker-puppeteer/blob/master/Dockerfile instead,
 # and install the latest stable version of Chrome to get the right dependencies, but that version changes over time,
-# so the stable version of Chrome and the version installed by Puppeteer might diverge over time. 
+# so the stable version of Chrome and the version installed by Puppeteer might diverge over time.
 # It also means they end up having Chrome downloaded and installed twice.
 # We could install the particular version of Chrome that our version of Puppeteer would use and then tell Puppeteer not to download its own version of Chrome,
 # but then we'd have to rebuild our Docker container every time we revved Puppeteer, and that feels fiddly too.
@@ -128,7 +128,7 @@ RUN apt-get update \
 RUN apt-get install -y libdigest-sha3-perl
 
 # We set this env variable (RUN_WORKER_TEST_WITHOUT_PUPPETEER_SANDBOX=1) this to tell our sql.js test harness to run Puppeteer without the sandbox.
-# Otherwise, when we instantiate Puppeteer, we get this error: 
+# Otherwise, when we instantiate Puppeteer, we get this error:
 # Puppeteer can't start due to a sandbox error. (Details follow.)
 #     [0321/173044.694524:FATAL:zygote_host_impl_linux.cc(117)] No usable sandbox! Update your kernel or see https://chromium.googlesource.com/chromium/src/+/master/docs/linux/suid_sandbox_development.md for more information on developing with the SUID sandbox. If you want to live dangerously and need an immediate workaround, you can try using --no-sandbox.
 ENV RUN_WORKER_TEST_WITHOUT_PUPPETEER_SANDBOX=1

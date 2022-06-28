@@ -39,14 +39,14 @@ function onModuleReady(SQL) {
             if (db === null) {
                 createDb();
             }
-            var callback = function callback(row) {
+            var callback = function cb(row) {
                 return postMessage({
                     id: data["id"],
                     row: row,
                     finished: false
                 });
             };
-            var done = function done() {
+            var done = function cb() {
                 return postMessage({
                     id: data["id"],
                     finished: true

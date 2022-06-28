@@ -24,7 +24,7 @@ module.exports = {
         "!/.eslintrc.js"
     ],
     parserOptions: {
-        ecmaVersion: 5,
+        ecmaVersion: 6,
         sourceType: "script"
     },
     rules: {
@@ -38,8 +38,8 @@ module.exports = {
         "dot-notation": "off",
         // reason - enforce 4-space indent
         indent: ["error", 4, { SwitchCase: 1 }],
-        // reason - enforce 80-column-width limit
-        "max-len": ["error", { code: 80 }],
+        // reason - enforce 85-column-width limit
+        "max-len": ["error", { code: 85 }],
         // reason - src/api.js uses bitwise-operators
         "no-bitwise": "off",
         "no-cond-assign": ["error", "except-parens"],
@@ -62,6 +62,10 @@ module.exports = {
         quotes: ["error", "double"],
         // reason - allow top-level "use-strict" in commonjs-modules
         strict: ["error", "safe"],
-        "vars-on-top": "off"
+        "vars-on-top": "off",
+        // reason - fs-externs.js has multiple classes
+        "max-classes-per-file": ["error", 3],
+        // reason - allow class methods without the this in fs-externs.js
+        "class-methods-use-this": "off"
     }
 };

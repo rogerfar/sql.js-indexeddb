@@ -1,4 +1,4 @@
-# Note: Last built with version 2.0.15 of Emscripten
+# Note: Last built with version 3.1.14 of Emscripten
 
 # TODO: Emit a file showing which version of emcc and SQLite was used to compile the emitted output.
 # TODO: Create a release on Github with these compiled assets rather than checking them in
@@ -19,10 +19,17 @@ EMCC=emcc
 
 SQLITE_COMPILATION_FLAGS = \
 	-Oz \
+	-DSQLITE_DQS=0 \
+	-DSQLITE_DEFAULT_MEMSTATUS=0 \
+	-DSQLITE_LIKE_DOESNT_MATCH_BLOBS \
+	-DSQLITE_MAX_EXPR_DEPTH=0 \
+	-DSQLITE_OMIT_DECLTYPE \
+	-DSQLITE_OMIT_DEPRECATED \
+	-DSQLITE_OMIT_PROGRESS_CALLBACK \
 	-DSQLITE_OMIT_LOAD_EXTENSION \
+	-DSQLITE_OMIT_SHARED_CACHE \
+	-DSQLITE_USE_ALLOCA \
 	-DSQLITE_DISABLE_LFS \
-	-DSQLITE_ENABLE_FTS3 \
-	-DSQLITE_ENABLE_FTS3_PARENTHESIS \
 	-DSQLITE_THREADSAFE=0 \
 	-DSQLITE_ENABLE_NORMALIZE
 
@@ -59,7 +66,7 @@ EMFLAGS_DEBUG = \
 	-s ASSERTIONS=1 \
 	-O1
 
-BITCODE_FILES = out/sqlite3.bc out/extension-functions.bc
+BITCODE_FILES = out/sqlite3.bc out/extension-functions.bc out/vfs.bc
 
 OUTPUT_WRAPPER_FILES = src/shell-pre.js src/shell-post.js
 
@@ -70,53 +77,68 @@ EMFLAGS_PRE_JS_FILES = \
 
 EXPORTED_METHODS_JSON_FILES = src/exported_functions.json src/exported_runtime_methods.json
 
-all: optimized debug worker
+FS_EXTERN_PATH = "$(realpath -s ./src/fs-externs.js)"
 
-.PHONY: debug
-debug: dist/sql-asm-debug.js dist/sql-wasm-debug.js
+all: wasm asm
+
+asm: optimized-asm debug-asm wasm worker-asm
+
+wasm: optimized-wasm debug-wasm worker-wasm
+
+.PHONY: debug-asm
+debug-asm: dist/sql-asm-debug.js
 
 dist/sql-asm-debug.js: $(BITCODE_FILES) $(OUTPUT_WRAPPER_FILES) $(SOURCE_API_FILES) $(EXPORTED_METHODS_JSON_FILES)
-	$(EMCC) $(EMFLAGS) $(EMFLAGS_DEBUG) $(EMFLAGS_ASM) $(BITCODE_FILES) $(EMFLAGS_PRE_JS_FILES) -o $@
+	EMCC_CLOSURE_ARGS="--externs ${FS_EXTERN_PATH}" $(EMCC) $(EMFLAGS) $(EMFLAGS_DEBUG) $(EMFLAGS_ASM) $(BITCODE_FILES) $(EMFLAGS_PRE_JS_FILES) -o $@
 	mv $@ out/tmp-raw.js
 	cat src/shell-pre.js out/tmp-raw.js src/shell-post.js > $@
 	rm out/tmp-raw.js
+
+.PHONY: debug-wasm
+debug-wasm: dist/sql-wasm-debug.js
 
 dist/sql-wasm-debug.js: $(BITCODE_FILES) $(OUTPUT_WRAPPER_FILES) $(SOURCE_API_FILES) $(EXPORTED_METHODS_JSON_FILES)
-	$(EMCC) $(EMFLAGS) $(EMFLAGS_DEBUG) $(EMFLAGS_WASM) $(BITCODE_FILES) $(EMFLAGS_PRE_JS_FILES) -o $@
+	EMCC_CLOSURE_ARGS="--externs ${FS_EXTERN_PATH}" $(EMCC) $(EMFLAGS) $(EMFLAGS_DEBUG) $(EMFLAGS_WASM) $(BITCODE_FILES) $(EMFLAGS_PRE_JS_FILES) -o $@
 	mv $@ out/tmp-raw.js
 	cat src/shell-pre.js out/tmp-raw.js src/shell-post.js > $@
 	rm out/tmp-raw.js
 
-.PHONY: optimized
-optimized: dist/sql-asm.js dist/sql-wasm.js dist/sql-asm-memory-growth.js
+.PHONY: optimized-asm
+optimized-asm: dist/sql-asm.js dist/sql-asm-memory-growth.js
 
 dist/sql-asm.js: $(BITCODE_FILES) $(OUTPUT_WRAPPER_FILES) $(SOURCE_API_FILES) $(EXPORTED_METHODS_JSON_FILES)
-	$(EMCC) $(EMFLAGS) $(EMFLAGS_OPTIMIZED) $(EMFLAGS_ASM) $(BITCODE_FILES) $(EMFLAGS_PRE_JS_FILES) -o $@
-	mv $@ out/tmp-raw.js
-	cat src/shell-pre.js out/tmp-raw.js src/shell-post.js > $@
-	rm out/tmp-raw.js
-
-dist/sql-wasm.js: $(BITCODE_FILES) $(OUTPUT_WRAPPER_FILES) $(SOURCE_API_FILES) $(EXPORTED_METHODS_JSON_FILES)
-	$(EMCC) $(EMFLAGS) $(EMFLAGS_OPTIMIZED) $(EMFLAGS_WASM) $(BITCODE_FILES) $(EMFLAGS_PRE_JS_FILES) -o $@
+	EMCC_CLOSURE_ARGS="--externs ${FS_EXTERN_PATH}" $(EMCC) $(EMFLAGS) $(EMFLAGS_OPTIMIZED) $(EMFLAGS_ASM) $(BITCODE_FILES) $(EMFLAGS_PRE_JS_FILES) -o $@
 	mv $@ out/tmp-raw.js
 	cat src/shell-pre.js out/tmp-raw.js src/shell-post.js > $@
 	rm out/tmp-raw.js
 
 dist/sql-asm-memory-growth.js: $(BITCODE_FILES) $(OUTPUT_WRAPPER_FILES) $(SOURCE_API_FILES) $(EXPORTED_METHODS_JSON_FILES)
-	$(EMCC) $(EMFLAGS) $(EMFLAGS_OPTIMIZED) $(EMFLAGS_ASM_MEMORY_GROWTH) $(BITCODE_FILES) $(EMFLAGS_PRE_JS_FILES) -o $@
+	EMCC_CLOSURE_ARGS="--externs ${FS_EXTERN_PATH}" $(EMCC) $(EMFLAGS) $(EMFLAGS_OPTIMIZED) $(EMFLAGS_ASM_MEMORY_GROWTH) $(BITCODE_FILES) $(EMFLAGS_PRE_JS_FILES) -o $@
+	mv $@ out/tmp-raw.js
+	cat src/shell-pre.js out/tmp-raw.js src/shell-post.js > $@
+	rm out/tmp-raw.js
+
+.PHONY: optimized-wasm
+optimized-wasm: dist/sql-wasm.js
+
+dist/sql-wasm.js: $(BITCODE_FILES) $(OUTPUT_WRAPPER_FILES) $(SOURCE_API_FILES) $(EXPORTED_METHODS_JSON_FILES)
+	EMCC_CLOSURE_ARGS="--externs ${FS_EXTERN_PATH}" $(EMCC) $(EMFLAGS) $(EMFLAGS_OPTIMIZED) $(EMFLAGS_WASM) $(BITCODE_FILES) $(EMFLAGS_PRE_JS_FILES) -o $@
 	mv $@ out/tmp-raw.js
 	cat src/shell-pre.js out/tmp-raw.js src/shell-post.js > $@
 	rm out/tmp-raw.js
 
 # Web worker API
-.PHONY: worker
-worker: dist/worker.sql-asm.js dist/worker.sql-asm-debug.js dist/worker.sql-wasm.js dist/worker.sql-wasm-debug.js
+.PHONY: worker-asm
+worker-asm: dist/worker.sql-asm.js dist/worker.sql-asm-debug.js
 
 dist/worker.sql-asm.js: dist/sql-asm.js src/worker.js
 	cat $^ > $@
 
 dist/worker.sql-asm-debug.js: dist/sql-asm-debug.js src/worker.js
 	cat $^ > $@
+
+.PHONY: worker-wasm
+worker-wasm: dist/worker.sql-wasm.js dist/worker.sql-wasm-debug.js
 
 dist/worker.sql-wasm.js: dist/sql-wasm.js src/worker.js
 	cat $^ > $@
@@ -153,6 +175,11 @@ out/extension-functions.bc: sqlite-src/$(SQLITE_AMALGAMATION)
 	# Generate llvm bitcode
 	$(EMCC) $(SQLITE_COMPILATION_FLAGS) -c sqlite-src/$(SQLITE_AMALGAMATION)/extension-functions.c -o $@
 
+out/vfs.bc: src/vfs.c sqlite-src/$(SQLITE_AMALGAMATION)
+	mkdir -p out
+	# Generate llvm bitcode
+	$(EMCC) $(SQLITE_COMPILATION_FLAGS) -I sqlite-src/$(SQLITE_AMALGAMATION) -c src/vfs.c -o $@
+
 # TODO: This target appears to be unused. If we re-instatate it, we'll need to add more files inside of the JS folder
 # module.tar.gz: test package.json AUTHORS README.md dist/sql-asm.js
 # 	tar --create --gzip $^ > $@
@@ -173,10 +200,7 @@ sqlite-src: sqlite-src/$(SQLITE_AMALGAMATION) sqlite-src/$(SQLITE_AMALGAMATION)/
 sqlite-src/$(SQLITE_AMALGAMATION): cache/$(SQLITE_AMALGAMATION).zip sqlite-src/$(SQLITE_AMALGAMATION)/$(EXTENSION_FUNCTIONS)
 	mkdir -p sqlite-src/$(SQLITE_AMALGAMATION)
 	echo '$(SQLITE_AMALGAMATION_ZIP_SHA3)  ./cache/$(SQLITE_AMALGAMATION).zip' > cache/check.txt
-	sha3sum -c cache/check.txt
-	# We don't delete the sqlite_amalgamation folder. That's a job for clean
-	# Also, the extension functions get copied here, and if we get the order of these steps wrong,
-	# this step could remove the extension functions, and that's not what we want
+	sha3sum -a 256 -c cache/check.txt
 	unzip -u 'cache/$(SQLITE_AMALGAMATION).zip' -d sqlite-src/
 	touch $@
 
